@@ -26,7 +26,8 @@ func (r *ItemRepository) Create(ctx context.Context, item *models.Item) error {
 	if err := r.db.WithContext(ctx).Create(entity).Error; err != nil {
 		return err
 	}
-	item.ID = int(entity.ID)
+	newItem := entity.ToModel()
+	*item = *newItem
 	return nil
 }
 
@@ -60,7 +61,7 @@ func (r *ItemRepository) List(ctx context.Context) ([]*models.Item, error) {
 func (r *ItemRepository) Update(ctx context.Context, item *models.Item) error {
 	entity := entities.ItemEntityFromModel(item)
 	result := r.db.WithContext(ctx).Model(&entities.ItemEntity{}).
-		Where("id = ?", item.ID).
+		Where("id = ?", item.ID()).
 		Updates(map[string]interface{}{
 			"name":        entity.Name,
 			"description": entity.Description,

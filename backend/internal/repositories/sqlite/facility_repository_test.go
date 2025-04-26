@@ -43,10 +43,7 @@ func (s *FacilityRepositoryTestSuite) SetupTest() {
 
 // createTestItem creates and persists a test item
 func (s *FacilityRepositoryTestSuite) createTestItem(name string) *models.Item {
-	item := &models.Item{
-		Name:        name,
-		Description: "Test Description for " + name,
-	}
+	item := models.NewItemFromParams(0, name, "Test Description for "+name)
 	err := s.itemRepo.Create(s.T().Context(), item)
 	s.NoError(err)
 	return item
@@ -54,33 +51,23 @@ func (s *FacilityRepositoryTestSuite) createTestItem(name string) *models.Item {
 
 // createTestFacility creates and persists a test facility with the given name and optional items
 func (s *FacilityRepositoryTestSuite) createTestFacility(name string, inputItems, outputItems []*models.Item) *models.Facility {
-	facility := &models.Facility{
-		Name:           name,
-		Description:    "Test Description for " + name,
-		ProcessingTime: 100,
-	}
+	facility := models.NewFacility(name, 100)
 
 	// Add input requirements
-	facility.InputRequirements = make([]models.InputRequirement, len(inputItems))
 	for i, item := range inputItems {
-		facility.InputRequirements[i] = models.InputRequirement{
-			Item:     *item,
-			Quantity: i + 1,
-		}
+		req := models.NewInputRequirement(item, i+1)
+		facility.AddInputRequirement(req)
 	}
 
 	// Add output definitions
-	facility.OutputDefinitions = make([]models.OutputDefinition, len(outputItems))
 	for i, item := range outputItems {
-		facility.OutputDefinitions[i] = models.OutputDefinition{
-			Item:     *item,
-			Quantity: i + 2,
-		}
+		def := models.NewOutputDefinition(item, i+2)
+		facility.AddOutputDefinition(def)
 	}
 
 	err := s.repo.Create(s.T().Context(), facility)
 	s.NoError(err)
-	s.Greater(facility.ID, 0)
+	s.Greater(facility.ID(), 0)
 	return facility
 }
 
@@ -90,43 +77,35 @@ func (s *FacilityRepositoryTestSuite) TestCreate() {
 	outputItem := s.createTestItem("Output Item")
 
 	// Create facility with relationships
-	facility := &models.Facility{
-		Name:           "Test Facility",
-		Description:    "Test Description",
-		ProcessingTime: 100,
-		InputRequirements: []models.InputRequirement{
-			{Item: *inputItem, Quantity: 2},
-		},
-		OutputDefinitions: []models.OutputDefinition{
-			{Item: *outputItem, Quantity: 1},
-		},
-	}
+	facility := models.NewFacility("Test Facility", 100)
+	facility.AddInputRequirement(models.NewInputRequirement(inputItem, 2))
+	facility.AddOutputDefinition(models.NewOutputDefinition(outputItem, 1))
 
 	err := s.repo.Create(s.T().Context(), facility)
 	s.NoError(err)
-	s.Greater(facility.ID, 0)
+	s.Greater(facility.ID(), 0)
 
 	// Verify the persistence
 	var entity entities.FacilityEntity
 	err = s.db.
 		Preload("InputRequirements.Item").
 		Preload("OutputDefinitions.Item").
-		First(&entity, facility.ID).Error
+		First(&entity, facility.ID()).Error
 	s.NoError(err)
 
 	// Verify facility data
-	s.Equal(facility.ID, int(entity.ID))
-	s.Equal(facility.Name, entity.Name)
-	s.Equal(facility.Description, entity.Description)
-	s.Equal(facility.ProcessingTime, entity.ProcessingTime)
+	s.Equal(facility.ID(), int(entity.ID))
+	s.Equal(facility.Name(), entity.Name)
+	s.Equal(facility.Description(), entity.Description)
+	s.Equal(facility.ProcessingTime(), entity.ProcessingTime)
 
 	// Verify relationships
 	s.Len(entity.InputRequirements, 1)
-	s.Equal(inputItem.ID, int(entity.InputRequirements[0].ItemID))
+	s.Equal(inputItem.ID(), int(entity.InputRequirements[0].ItemID))
 	s.Equal(2, entity.InputRequirements[0].Quantity)
 
 	s.Len(entity.OutputDefinitions, 1)
-	s.Equal(outputItem.ID, int(entity.OutputDefinitions[0].ItemID))
+	s.Equal(outputItem.ID(), int(entity.OutputDefinitions[0].ItemID))
 	s.Equal(1, entity.OutputDefinitions[0].Quantity)
 }
 
@@ -149,7 +128,7 @@ func (s *FacilityRepositoryTestSuite) TestGet() {
 				return s.createTestFacility("Test Facility", []*models.Item{inputItem}, []*models.Item{outputItem})
 			},
 			getID: func(facility *models.Facility) int {
-				return facility.ID
+				return facility.ID()
 			},
 			expectErr:    nil,
 			expectExists: true,
@@ -181,19 +160,19 @@ func (s *FacilityRepositoryTestSuite) TestGet() {
 
 			if tc.expectExists {
 				s.NotNil(result)
-				s.Equal(setupFacility.ID, result.ID)
-				s.Equal(setupFacility.Name, result.Name)
-				s.Equal(setupFacility.Description, result.Description)
-				s.Equal(setupFacility.ProcessingTime, result.ProcessingTime)
+				s.Equal(setupFacility.ID(), result.ID())
+				s.Equal(setupFacility.Name(), result.Name())
+				s.Equal(setupFacility.Description(), result.Description())
+				s.Equal(setupFacility.ProcessingTime(), result.ProcessingTime())
 
 				// Verify relationships
-				s.Len(result.InputRequirements, 1)
-				s.Equal(inputItem.ID, result.InputRequirements[0].Item.ID)
-				s.Equal(1, result.InputRequirements[0].Quantity)
+				s.Len(result.InputRequirements(), 1)
+				s.Equal(inputItem.ID(), result.InputRequirements()[0].Item().ID())
+				s.Equal(1, result.InputRequirements()[0].Quantity())
 
-				s.Len(result.OutputDefinitions, 1)
-				s.Equal(outputItem.ID, result.OutputDefinitions[0].Item.ID)
-				s.Equal(2, result.OutputDefinitions[0].Quantity)
+				s.Len(result.OutputDefinitions(), 1)
+				s.Equal(outputItem.ID(), result.OutputDefinitions()[0].Item().ID())
+				s.Equal(2, result.OutputDefinitions()[0].Quantity())
 			} else {
 				s.Nil(result)
 			}
@@ -218,17 +197,17 @@ func (s *FacilityRepositoryTestSuite) TestList() {
 
 	// Verify each facility
 	for i, result := range results {
-		s.Equal(facilities[i].ID, result.ID)
-		s.Equal(facilities[i].Name, result.Name)
-		s.Equal(facilities[i].Description, result.Description)
-		s.Equal(facilities[i].ProcessingTime, result.ProcessingTime)
+		s.Equal(facilities[i].ID(), result.ID())
+		s.Equal(facilities[i].Name(), result.Name())
+		s.Equal(facilities[i].Description(), result.Description())
+		s.Equal(facilities[i].ProcessingTime(), result.ProcessingTime())
 
 		// Verify relationships
-		s.Len(result.InputRequirements, 1)
-		s.Equal(inputItem.ID, result.InputRequirements[0].Item.ID)
+		s.Len(result.InputRequirements(), 1)
+		s.Equal(inputItem.ID(), result.InputRequirements()[0].Item().ID())
 
-		s.Len(result.OutputDefinitions, 1)
-		s.Equal(outputItem.ID, result.OutputDefinitions[0].Item.ID)
+		s.Len(result.OutputDefinitions(), 1)
+		s.Equal(outputItem.ID(), result.OutputDefinitions()[0].Item().ID())
 	}
 }
 
@@ -242,45 +221,47 @@ func (s *FacilityRepositoryTestSuite) TestUpdate() {
 	// Create initial facility
 	facility := s.createTestFacility("Original Facility", []*models.Item{inputItem1}, []*models.Item{outputItem1})
 
-	// Modify facility
-	facility.Name = "Updated Facility"
-	facility.Description = "Updated Description"
-	facility.ProcessingTime = 200
-	facility.InputRequirements = []models.InputRequirement{
-		{Item: *inputItem2, Quantity: 3},
-	}
-	facility.OutputDefinitions = []models.OutputDefinition{
-		{Item: *outputItem2, Quantity: 4},
-	}
+	// Create updated facility
+	updatedFacility := models.NewFacilityFromParams(
+		facility.ID(),
+		"Updated Facility",
+		"Updated Description",
+		[]*models.InputRequirement{models.NewInputRequirement(inputItem2, 3)},
+		[]*models.OutputDefinition{models.NewOutputDefinition(outputItem2, 4)},
+		200,
+	)
 
-	err := s.repo.Update(s.T().Context(), facility)
+	err := s.repo.Update(s.T().Context(), updatedFacility)
 	s.NoError(err)
 
 	// Verify the update
-	updated, err := s.repo.Get(s.T().Context(), facility.ID)
+	updated, err := s.repo.Get(s.T().Context(), facility.ID())
 	s.NoError(err)
 	s.NotNil(updated)
 
 	// Verify basic fields
-	s.Equal(facility.Name, updated.Name)
-	s.Equal(facility.Description, updated.Description)
-	s.Equal(facility.ProcessingTime, updated.ProcessingTime)
+	s.Equal(updatedFacility.Name(), updated.Name())
+	s.Equal(updatedFacility.Description(), updated.Description())
+	s.Equal(updatedFacility.ProcessingTime(), updated.ProcessingTime())
 
 	// Verify relationships
-	s.Len(updated.InputRequirements, 1)
-	s.Equal(inputItem2.ID, updated.InputRequirements[0].Item.ID)
-	s.Equal(3, updated.InputRequirements[0].Quantity)
+	s.Len(updated.InputRequirements(), 1)
+	s.Equal(inputItem2.ID(), updated.InputRequirements()[0].Item().ID())
+	s.Equal(3, updated.InputRequirements()[0].Quantity())
 
-	s.Len(updated.OutputDefinitions, 1)
-	s.Equal(outputItem2.ID, updated.OutputDefinitions[0].Item.ID)
-	s.Equal(4, updated.OutputDefinitions[0].Quantity)
+	s.Len(updated.OutputDefinitions(), 1)
+	s.Equal(outputItem2.ID(), updated.OutputDefinitions()[0].Item().ID())
+	s.Equal(4, updated.OutputDefinitions()[0].Quantity())
 
 	// Test updating non-existent facility
-	nonExistentFacility := &models.Facility{
-		ID:          999,
-		Name:        "Non-existent",
-		Description: "Non-existent",
-	}
+	nonExistentFacility := models.NewFacilityFromParams(
+		999,
+		"Non-existent",
+		"Non-existent",
+		[]*models.InputRequirement{},
+		[]*models.OutputDefinition{},
+		100,
+	)
 	err = s.repo.Update(s.T().Context(), nonExistentFacility)
 	s.Equal(gorm.ErrRecordNotFound, err)
 }
@@ -302,7 +283,7 @@ func (s *FacilityRepositoryTestSuite) TestDelete() {
 				return s.createTestFacility("Test Facility", []*models.Item{inputItem}, []*models.Item{outputItem})
 			},
 			getID: func(facility *models.Facility) int {
-				return facility.ID
+				return facility.ID()
 			},
 			expectErr: nil,
 		},

@@ -17,20 +17,20 @@ func (ItemEntity) TableName() string {
 }
 
 func (e *ItemEntity) ToModel() *models.Item {
-	return &models.Item{
-		ID:          int(e.ID),
-		Name:        e.Name,
-		Description: e.Description,
-	}
+	return models.NewItemFromParams(
+		int(e.ID),
+		e.Name,
+		e.Description,
+	)
 }
 
 // FromModel creates an entity from a domain model
 func ItemEntityFromModel(m *models.Item) *ItemEntity {
 	return &ItemEntity{
 		Model: gorm.Model{
-			ID: uint(m.ID),
+			ID: uint(m.ID()),
 		},
-		Name:        m.Name,
-		Description: m.Description,
+		Name:        m.Name(),
+		Description: m.Description(),
 	}
 }

@@ -51,60 +51,54 @@ func (FacilityEntity) TableName() string {
 }
 
 func (e *FacilityEntity) ToModel() *models.Facility {
-	facility := &models.Facility{
-		ID:             e.ID,
-		Name:           e.Name,
-		Description:    e.Description,
-		ProcessingTime: e.ProcessingTime,
-	}
-
 	// Convert input requirements
-	facility.InputRequirements = make([]models.InputRequirement, len(e.InputRequirements))
+	inputReqs := make([]*models.InputRequirement, len(e.InputRequirements))
 	for i, input := range e.InputRequirements {
-		facility.InputRequirements[i] = models.InputRequirement{
-			Item:     *input.Item.ToModel(),
-			Quantity: input.Quantity,
-		}
+		inputReqs[i] = models.NewInputRequirement(input.Item.ToModel(), input.Quantity)
 	}
 
 	// Convert output definitions
-	facility.OutputDefinitions = make([]models.OutputDefinition, len(e.OutputDefinitions))
+	outputDefs := make([]*models.OutputDefinition, len(e.OutputDefinitions))
 	for i, output := range e.OutputDefinitions {
-		facility.OutputDefinitions[i] = models.OutputDefinition{
-			Item:     *output.Item.ToModel(),
-			Quantity: output.Quantity,
-		}
+		outputDefs[i] = models.NewOutputDefinition(output.Item.ToModel(), output.Quantity)
 	}
 
-	return facility
+	return models.NewFacilityFromParams(
+		e.ID,
+		e.Name,
+		e.Description,
+		inputReqs,
+		outputDefs,
+		e.ProcessingTime,
+	)
 }
 
 // FromModel creates an entity from a domain model
 func FacilityEntityFromModel(m *models.Facility) *FacilityEntity {
 	facility := &FacilityEntity{
-		ID:             m.ID,
-		Name:           m.Name,
-		Description:    m.Description,
-		ProcessingTime: m.ProcessingTime,
+		ID:             m.ID(),
+		Name:           m.Name(),
+		Description:    m.Description(),
+		ProcessingTime: m.ProcessingTime(),
 	}
 
 	// Convert input requirements
-	facility.InputRequirements = make([]InputRequirementEntity, len(m.InputRequirements))
-	for i, input := range m.InputRequirements {
+	facility.InputRequirements = make([]InputRequirementEntity, len(m.InputRequirements()))
+	for i, input := range m.InputRequirements() {
 		facility.InputRequirements[i] = InputRequirementEntity{
-			FacilityID: m.ID,
-			ItemID:     input.Item.ID,
-			Quantity:   input.Quantity,
+			FacilityID: m.ID(),
+			ItemID:     input.Item().ID(),
+			Quantity:   input.Quantity(),
 		}
 	}
 
 	// Convert output definitions
-	facility.OutputDefinitions = make([]OutputDefinitionEntity, len(m.OutputDefinitions))
-	for i, output := range m.OutputDefinitions {
+	facility.OutputDefinitions = make([]OutputDefinitionEntity, len(m.OutputDefinitions()))
+	for i, output := range m.OutputDefinitions() {
 		facility.OutputDefinitions[i] = OutputDefinitionEntity{
-			FacilityID: m.ID,
-			ItemID:     output.Item.ID,
-			Quantity:   output.Quantity,
+			FacilityID: m.ID(),
+			ItemID:     output.Item().ID(),
+			Quantity:   output.Quantity(),
 		}
 	}
 

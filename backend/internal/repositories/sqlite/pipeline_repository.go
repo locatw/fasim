@@ -25,34 +25,33 @@ func (r *PipelineRepository) Create(ctx context.Context, pipeline *models.Pipeli
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Create pipeline first
 		pipelineEntity := &entities.PipelineEntity{
-			Name:        pipeline.Name,
-			Description: pipeline.Description,
+			Name:        pipeline.Name(),
+			Description: pipeline.Description(),
 		}
 		if err := tx.Create(pipelineEntity).Error; err != nil {
 			return err
 		}
-		pipeline.ID = pipelineEntity.ID
 
 		// Create nodes with auto-generated IDs
 		nodeMap := make(map[int]*entities.PipelineNodeEntity)
 		nodeIDMap := make(map[int]int) // Map from temporary ID to actual ID
-		for _, node := range pipeline.Nodes {
+		for _, node := range pipeline.Nodes() {
 			nodeEntity := &entities.PipelineNodeEntity{
 				PipelineID: pipelineEntity.ID,
-				FacilityID: node.Facility.ID,
+				FacilityID: node.Facility().ID(),
 			}
 			if err := tx.Create(nodeEntity).Error; err != nil {
 				return err
 			}
-			nodeMap[node.ID] = nodeEntity
-			nodeIDMap[node.ID] = nodeEntity.ID
+			nodeMap[node.ID()] = nodeEntity
+			nodeIDMap[node.ID()] = nodeEntity.ID
 		}
 
 		// Create node connections using actual IDs
-		for _, node := range pipeline.Nodes {
-			for _, targetID := range node.NextNodeIDs {
+		for _, node := range pipeline.Nodes() {
+			for _, targetID := range node.NextNodeIDs() {
 				conn := &entities.PipelineNodeConnectionEntity{
-					SourceNodeID: nodeIDMap[node.ID],
+					SourceNodeID: nodeIDMap[node.ID()],
 					TargetNodeID: nodeIDMap[targetID],
 				}
 				if err := tx.Create(conn).Error; err != nil {
@@ -74,7 +73,7 @@ func (r *PipelineRepository) Create(ctx context.Context, pipeline *models.Pipeli
 
 		// Update the model with actual node IDs
 		result := entity.ToModel()
-		pipeline.Nodes = result.Nodes
+		*pipeline = *result
 
 		return nil
 	})
@@ -121,7 +120,7 @@ func (r *PipelineRepository) Update(ctx context.Context, pipeline *models.Pipeli
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Check if pipeline exists
 		var count int64
-		if err := tx.Model(&entities.PipelineEntity{}).Where("id = ?", pipeline.ID).Count(&count).Error; err != nil {
+		if err := tx.Model(&entities.PipelineEntity{}).Where("id = ?", pipeline.ID()).Count(&count).Error; err != nil {
 			return err
 		}
 		if count == 0 {
@@ -129,20 +128,20 @@ func (r *PipelineRepository) Update(ctx context.Context, pipeline *models.Pipeli
 		}
 
 		// Delete existing nodes and their connections
-		if err := tx.Where("source_node_id IN (SELECT id FROM pipeline_nodes WHERE pipeline_id = ?)", pipeline.ID).
+		if err := tx.Where("source_node_id IN (SELECT id FROM pipeline_nodes WHERE pipeline_id = ?)", pipeline.ID()).
 			Delete(&entities.PipelineNodeConnectionEntity{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("pipeline_id = ?", pipeline.ID).Delete(&entities.PipelineNodeEntity{}).Error; err != nil {
+		if err := tx.Where("pipeline_id = ?", pipeline.ID()).Delete(&entities.PipelineNodeEntity{}).Error; err != nil {
 			return err
 		}
 
 		// Update pipeline
 		if err := tx.Model(&entities.PipelineEntity{}).
-			Where("id = ?", pipeline.ID).
+			Where("id = ?", pipeline.ID()).
 			Updates(map[string]interface{}{
-				"name":        pipeline.Name,
-				"description": pipeline.Description,
+				"name":        pipeline.Name(),
+				"description": pipeline.Description(),
 			}).Error; err != nil {
 			return err
 		}
@@ -150,23 +149,23 @@ func (r *PipelineRepository) Update(ctx context.Context, pipeline *models.Pipeli
 		// Create nodes with auto-generated IDs
 		nodeMap := make(map[int]*entities.PipelineNodeEntity)
 		nodeIDMap := make(map[int]int) // Map from temporary ID to actual ID
-		for _, node := range pipeline.Nodes {
+		for _, node := range pipeline.Nodes() {
 			nodeEntity := &entities.PipelineNodeEntity{
-				PipelineID: pipeline.ID,
-				FacilityID: node.Facility.ID,
+				PipelineID: pipeline.ID(),
+				FacilityID: node.Facility().ID(),
 			}
 			if err := tx.Create(nodeEntity).Error; err != nil {
 				return err
 			}
-			nodeMap[node.ID] = nodeEntity
-			nodeIDMap[node.ID] = nodeEntity.ID
+			nodeMap[node.ID()] = nodeEntity
+			nodeIDMap[node.ID()] = nodeEntity.ID
 		}
 
 		// Create node connections using actual IDs
-		for _, node := range pipeline.Nodes {
-			for _, targetID := range node.NextNodeIDs {
+		for _, node := range pipeline.Nodes() {
+			for _, targetID := range node.NextNodeIDs() {
 				conn := &entities.PipelineNodeConnectionEntity{
-					SourceNodeID: nodeIDMap[node.ID],
+					SourceNodeID: nodeIDMap[node.ID()],
 					TargetNodeID: nodeIDMap[targetID],
 				}
 				if err := tx.Create(conn).Error; err != nil {
@@ -182,13 +181,13 @@ func (r *PipelineRepository) Update(ctx context.Context, pipeline *models.Pipeli
 			Preload("Nodes.NextNodes.TargetNode").
 			Preload("Nodes.Facility.InputRequirements.Item").
 			Preload("Nodes.Facility.OutputDefinitions.Item").
-			First(&entity, pipeline.ID).Error; err != nil {
+			First(&entity, pipeline.ID()).Error; err != nil {
 			return err
 		}
 
 		// Update the model with actual node IDs
 		result := entity.ToModel()
-		pipeline.Nodes = result.Nodes
+		*pipeline = *result
 
 		return nil
 	})

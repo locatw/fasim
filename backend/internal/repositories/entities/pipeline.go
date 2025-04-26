@@ -43,16 +43,15 @@ func (e *PipelineNodeEntity) GetNextNodeIDs() []int {
 }
 
 func (e *PipelineNodeEntity) ToModel() *models.PipelineNode {
-	node := &models.PipelineNode{
-		ID:          e.ID,
-		Facility:    *e.Facility.ToModel(),
-		NextNodeIDs: make([]int, len(e.NextNodes)),
-	}
-	// Add next node IDs from connections
+	nextNodeIDs := make([]int, len(e.NextNodes))
 	for i, conn := range e.NextNodes {
-		node.NextNodeIDs[i] = conn.TargetNodeID
+		nextNodeIDs[i] = conn.TargetNodeID
 	}
-	return node
+	return models.NewPipelineNodeFromParams(
+		e.ID,
+		e.Facility.ToModel(),
+		nextNodeIDs,
+	)
 }
 
 // PipelineEntity represents a complete production line configuration,
@@ -70,46 +69,45 @@ func (PipelineEntity) TableName() string {
 }
 
 func (e *PipelineEntity) ToModel() *models.Pipeline {
-	pipeline := &models.Pipeline{
-		ID:          e.ID,
-		Name:        e.Name,
-		Description: e.Description,
-		Nodes:       make(map[int]models.PipelineNode),
-	}
-
+	nodes := make(map[int]*models.PipelineNode)
 	for _, node := range e.Nodes {
 		nodeModel := node.ToModel()
-		pipeline.Nodes[nodeModel.ID] = *nodeModel
+		nodes[nodeModel.ID()] = nodeModel
 	}
 
-	return pipeline
+	return models.NewPipelineFromParams(
+		e.ID,
+		e.Name,
+		e.Description,
+		nodes,
+	)
 }
 
 // FromModel creates an entity from a domain model
 func PipelineEntityFromModel(m *models.Pipeline) *PipelineEntity {
 	pipeline := &PipelineEntity{
-		ID:          m.ID,
-		Name:        m.Name,
-		Description: m.Description,
-		Nodes:       make([]PipelineNodeEntity, 0, len(m.Nodes)),
+		ID:          m.ID(),
+		Name:        m.Name(),
+		Description: m.Description(),
+		Nodes:       make([]PipelineNodeEntity, 0, len(m.Nodes())),
 	}
 
 	// Create nodes first
 	nodeMap := make(map[int]*PipelineNodeEntity) // Map from model node ID to entity node
-	for _, node := range m.Nodes {
+	for _, node := range m.Nodes() {
 		pipelineNode := &PipelineNodeEntity{
-			PipelineID: m.ID,
-			FacilityID: node.Facility.ID,
+			PipelineID: m.ID(),
+			FacilityID: node.Facility().ID(),
 			NextNodes:  make([]PipelineNodeConnectionEntity, 0),
 		}
 		pipeline.Nodes = append(pipeline.Nodes, *pipelineNode)
-		nodeMap[node.ID] = pipelineNode
+		nodeMap[node.ID()] = pipelineNode
 	}
 
 	// Create connections using the node map
-	for _, node := range m.Nodes {
-		sourceNode := nodeMap[node.ID]
-		for _, targetID := range node.NextNodeIDs {
+	for _, node := range m.Nodes() {
+		sourceNode := nodeMap[node.ID()]
+		for _, targetID := range node.NextNodeIDs() {
 			targetNode := nodeMap[targetID]
 			connection := PipelineNodeConnectionEntity{
 				SourceNodeID: sourceNode.ID,
