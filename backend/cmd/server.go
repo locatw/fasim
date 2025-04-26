@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -11,19 +11,28 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/spf13/cobra"
 )
 
-const (
-	defaultPort = "8080"
+var (
+	port string
 )
 
-func main() {
-	// Server configuration
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
+func init() {
+	serverCmd.Flags().StringVarP(&port, "port", "p", "8080", "Port to run the server on")
+	rootCmd.AddCommand(serverCmd)
+}
 
+var serverCmd = &cobra.Command{
+	Use:   "server",
+	Short: "Start the Fasim server",
+	Long:  `Start the Factory Automation Simulator server to handle API requests.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		startServer()
+	},
+}
+
+func startServer() {
 	// Create Echo instance
 	e := echo.New()
 	e.HideBanner = true
