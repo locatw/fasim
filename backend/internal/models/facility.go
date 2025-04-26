@@ -64,8 +64,8 @@ func NewFacility(name string, description string, processingTime int64) *Facilit
 	}
 }
 
-// NewFacilityFromParams creates a facility with all parameters specified, typically used when
-// reconstructing a facility from persistent storage
+// NewFacilityFromParams creates a facility with all parameters specified.
+// Use this function only when creating objects from persisted data, and use NewFacility() for other purposes.
 func NewFacilityFromParams(id int, name string, description string, inputReqs []*InputRequirement, outputDefs []*OutputDefinition, processingTime int64) *Facility {
 	return &Facility{
 		id:                id,

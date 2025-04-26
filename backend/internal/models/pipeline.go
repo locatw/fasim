@@ -16,8 +16,8 @@ func NewPipelineNode(facility *Facility) *PipelineNode {
 	}
 }
 
-// NewPipelineNodeFromParams creates a node with all parameters specified, typically used when
-// reconstructing a node from persistent storage
+// NewPipelineNodeFromParams creates a node with all parameters specified.
+// Use this function only when creating objects from persisted data, and use NewPipelineNode() for other purposes.
 func NewPipelineNodeFromParams(id int, facility *Facility, nextNodeIDs []int) *PipelineNode {
 	return &PipelineNode{
 		id:          id,
@@ -59,8 +59,8 @@ func NewPipeline(name string) *Pipeline {
 	}
 }
 
-// NewPipelineFromParams creates a pipeline with all parameters specified, typically used when
-// reconstructing a pipeline from persistent storage
+// NewPipelineFromParams creates a pipeline with all parameters specified.
+// Use this function only when creating objects from persisted data, and use NewPipeline() for other purposes.
 func NewPipelineFromParams(id int, name string, description string, nodes map[int]*PipelineNode) *Pipeline {
 	return &Pipeline{
 		id:          id,

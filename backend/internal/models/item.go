@@ -1,13 +1,13 @@
 package models
 
-// Item は生産アイテムを表す構造体です
+// Item represents a production item
 type Item struct {
 	id          int
 	name        string
 	description string
 }
 
-// NewItem は新しいItemを生成します
+// NewItem creates a new Item
 func NewItem(name, description string) *Item {
 	return &Item{
 		name:        name,
@@ -15,7 +15,8 @@ func NewItem(name, description string) *Item {
 	}
 }
 
-// NewItemFromParams はパラメータからItemを生成します
+// NewItemFromParams creates an item with all parameters specified.
+// Use this function only when creating objects from persisted data, and use NewItem() for other purposes.
 func NewItemFromParams(id int, name string, description string) *Item {
 	return &Item{
 		id:          id,
@@ -24,17 +25,17 @@ func NewItemFromParams(id int, name string, description string) *Item {
 	}
 }
 
-// ID はアイテムのIDを返します
+// ID returns the item's ID
 func (i *Item) ID() int {
 	return i.id
 }
 
-// Name はアイテムの名前を返します
+// Name returns the item's name
 func (i *Item) Name() string {
 	return i.name
 }
 
-// Description はアイテムの説明を返します
+// Description returns the item's description
 func (i *Item) Description() string {
 	return i.description
 }
