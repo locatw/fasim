@@ -8,7 +8,6 @@ import (
 // ItemEntity represents a material or product that can be used in production processes
 type ItemEntity struct {
 	gorm.Model
-	ID          int    `gorm:"primaryKey;autoIncrement"`
 	Name        string `gorm:"not null;index"`
 	Description string
 }
@@ -19,7 +18,7 @@ func (ItemEntity) TableName() string {
 
 func (e *ItemEntity) ToModel() *models.Item {
 	return &models.Item{
-		ID:          e.ID,
+		ID:          int(e.ID),
 		Name:        e.Name,
 		Description: e.Description,
 	}
@@ -28,7 +27,9 @@ func (e *ItemEntity) ToModel() *models.Item {
 // FromModel creates an entity from a domain model
 func ItemEntityFromModel(m *models.Item) *ItemEntity {
 	return &ItemEntity{
-		ID:          m.ID,
+		Model: gorm.Model{
+			ID: uint(m.ID),
+		},
 		Name:        m.Name,
 		Description: m.Description,
 	}

@@ -43,11 +43,16 @@ func (e *PipelineNodeEntity) GetNextNodeIDs() []int {
 }
 
 func (e *PipelineNodeEntity) ToModel() *models.PipelineNode {
-	return &models.PipelineNode{
+	node := &models.PipelineNode{
 		ID:          e.ID,
 		Facility:    *e.Facility.ToModel(),
-		NextNodeIDs: e.GetNextNodeIDs(),
+		NextNodeIDs: make([]int, len(e.NextNodes)),
 	}
+	// Add next node IDs from connections
+	for i, conn := range e.NextNodes {
+		node.NextNodeIDs[i] = conn.TargetNodeID
+	}
+	return node
 }
 
 // PipelineEntity represents a complete production line configuration,
@@ -86,39 +91,38 @@ func PipelineEntityFromModel(m *models.Pipeline) *PipelineEntity {
 		ID:          m.ID,
 		Name:        m.Name,
 		Description: m.Description,
+		Nodes:       make([]PipelineNodeEntity, 0, len(m.Nodes)),
 	}
 
 	// Create nodes first
-	nodeMap := make(map[int]PipelineNodeEntity)
-	pipeline.Nodes = make([]PipelineNodeEntity, 0, len(m.Nodes))
+	nodeMap := make(map[int]*PipelineNodeEntity) // Map from model node ID to entity node
 	for _, node := range m.Nodes {
-		pipelineNode := PipelineNodeEntity{
-			ID:         node.ID,
+		pipelineNode := &PipelineNodeEntity{
 			PipelineID: m.ID,
 			FacilityID: node.Facility.ID,
+			NextNodes:  make([]PipelineNodeConnectionEntity, 0),
 		}
+		pipeline.Nodes = append(pipeline.Nodes, *pipelineNode)
 		nodeMap[node.ID] = pipelineNode
-		pipeline.Nodes = append(pipeline.Nodes, pipelineNode)
 	}
 
-	// Create connections
+	// Create connections using the node map
 	for _, node := range m.Nodes {
 		sourceNode := nodeMap[node.ID]
-		sourceNode.NextNodes = make([]PipelineNodeConnectionEntity, 0, len(node.NextNodeIDs))
 		for _, targetID := range node.NextNodeIDs {
+			targetNode := nodeMap[targetID]
 			connection := PipelineNodeConnectionEntity{
-				SourceNodeID: node.ID,
-				TargetNodeID: targetID,
+				SourceNodeID: sourceNode.ID,
+				TargetNodeID: targetNode.ID,
 			}
 			sourceNode.NextNodes = append(sourceNode.NextNodes, connection)
 		}
-		// Update the node in both maps
-		nodeMap[node.ID] = sourceNode
-		for i, n := range pipeline.Nodes {
-			if n.ID == sourceNode.ID {
-				pipeline.Nodes[i] = sourceNode
-				break
-			}
+	}
+
+	// Update nodes in the pipeline with connections
+	for i, node := range pipeline.Nodes {
+		if pNode := nodeMap[node.ID]; pNode != nil {
+			pipeline.Nodes[i].NextNodes = pNode.NextNodes
 		}
 	}
 

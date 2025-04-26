@@ -16,3 +16,7 @@ Please refer to README.md for the application overview.
   - Comments should contain information that cannot be inferred from the code
   - Avoid self-evident comments
   - All comments must be written in English
+- Testing
+  - All code changes must be verified by running unit tests
+  - Run `go test ./...` in the backend directory to execute all tests
+  - All tests must pass before considering a task complete

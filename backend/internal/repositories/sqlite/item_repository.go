@@ -23,13 +23,17 @@ func NewItemRepository(db *db.DB) repositories.ItemRepository {
 // Create stores a new item
 func (r *ItemRepository) Create(ctx context.Context, item *models.Item) error {
 	entity := entities.ItemEntityFromModel(item)
-	return r.db.WithContext(ctx).Create(entity).Error
+	if err := r.db.WithContext(ctx).Create(entity).Error; err != nil {
+		return err
+	}
+	item.ID = int(entity.ID)
+	return nil
 }
 
 // Get retrieves an item by ID
-func (r *ItemRepository) Get(ctx context.Context, id string) (*models.Item, error) {
+func (r *ItemRepository) Get(ctx context.Context, id int) (*models.Item, error) {
 	var entity entities.ItemEntity
-	if err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&entity, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -72,8 +76,8 @@ func (r *ItemRepository) Update(ctx context.Context, item *models.Item) error {
 }
 
 // Delete removes an item by ID
-func (r *ItemRepository) Delete(ctx context.Context, id string) error {
-	result := r.db.WithContext(ctx).Delete(&entities.ItemEntity{}, "id = ?", id)
+func (r *ItemRepository) Delete(ctx context.Context, id int) error {
+	result := r.db.WithContext(ctx).Delete(&entities.ItemEntity{}, id)
 	if result.Error != nil {
 		return result.Error
 	}

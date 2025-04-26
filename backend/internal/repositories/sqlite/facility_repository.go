@@ -23,16 +23,20 @@ func NewFacilityRepository(db *db.DB) repositories.FacilityRepository {
 // Create stores a new facility
 func (r *FacilityRepository) Create(ctx context.Context, facility *models.Facility) error {
 	entity := entities.FacilityEntityFromModel(facility)
-	return r.db.WithContext(ctx).Create(entity).Error
+	if err := r.db.WithContext(ctx).Create(entity).Error; err != nil {
+		return err
+	}
+	facility.ID = entity.ID
+	return nil
 }
 
 // Get retrieves a facility by ID
-func (r *FacilityRepository) Get(ctx context.Context, id string) (*models.Facility, error) {
+func (r *FacilityRepository) Get(ctx context.Context, id int) (*models.Facility, error) {
 	var entity entities.FacilityEntity
 	if err := r.db.WithContext(ctx).
 		Preload("InputRequirements.Item").
 		Preload("OutputDefinitions.Item").
-		First(&entity, "id = ?", id).Error; err != nil {
+		First(&entity, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -61,6 +65,15 @@ func (r *FacilityRepository) List(ctx context.Context) ([]*models.Facility, erro
 // Update updates an existing facility
 func (r *FacilityRepository) Update(ctx context.Context, facility *models.Facility) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Check if facility exists
+		var count int64
+		if err := tx.Model(&entities.FacilityEntity{}).Where("id = ?", facility.ID).Count(&count).Error; err != nil {
+			return err
+		}
+		if count == 0 {
+			return gorm.ErrRecordNotFound
+		}
+
 		// Delete existing relationships
 		if err := tx.Where("facility_id = ?", facility.ID).Delete(&entities.InputRequirementEntity{}).Error; err != nil {
 			return err
@@ -76,8 +89,8 @@ func (r *FacilityRepository) Update(ctx context.Context, facility *models.Facili
 		if err := tx.Model(&entities.FacilityEntity{}).
 			Where("id = ?", facility.ID).
 			Updates(map[string]interface{}{
-				"name":           entity.Name,
-				"description":    entity.Description,
+				"name":            entity.Name,
+				"description":     entity.Description,
 				"processing_time": entity.ProcessingTime,
 			}).Error; err != nil {
 			return err
@@ -96,13 +109,26 @@ func (r *FacilityRepository) Update(ctx context.Context, facility *models.Facili
 }
 
 // Delete removes a facility by ID
-func (r *FacilityRepository) Delete(ctx context.Context, id string) error {
-	result := r.db.WithContext(ctx).Delete(&entities.FacilityEntity{}, "id = ?", id)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
-	return nil
+func (r *FacilityRepository) Delete(ctx context.Context, id int) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Check if facility exists
+		var count int64
+		if err := tx.Model(&entities.FacilityEntity{}).Where("id = ?", id).Count(&count).Error; err != nil {
+			return err
+		}
+		if count == 0 {
+			return gorm.ErrRecordNotFound
+		}
+
+		// Delete relationships first
+		if err := tx.Where("facility_id = ?", id).Delete(&entities.InputRequirementEntity{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("facility_id = ?", id).Delete(&entities.OutputDefinitionEntity{}).Error; err != nil {
+			return err
+		}
+
+		// Delete facility
+		return tx.Delete(&entities.FacilityEntity{}, id).Error
+	})
 }
