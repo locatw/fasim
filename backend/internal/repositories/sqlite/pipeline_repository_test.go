@@ -105,68 +105,115 @@ func (s *PipelineRepositoryTestSuite) createTestPipeline(name string, facilities
 }
 
 func (s *PipelineRepositoryTestSuite) TestCreate() {
-	// Create test items and facilities
-	item1 := s.createTestItem("Item 1")
-	item2 := s.createTestItem("Item 2")
-	facility1 := s.createTestFacility("Facility 1", []*models.Item{item1}, []*models.Item{item2})
-	facility2 := s.createTestFacility("Facility 2", []*models.Item{item2}, []*models.Item{item1})
+	testCases := []struct {
+		name        string
+		setup       func() (*models.Item, *models.Item, *models.Facility, *models.Facility)
+		input       func(*models.Facility, *models.Facility) *models.Pipeline
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "creates a pipeline with sequential nodes",
+			setup: func() (*models.Item, *models.Item, *models.Facility, *models.Facility) {
+				item1 := s.createTestItem("Item 1")
+				item2 := s.createTestItem("Item 2")
+				facility1 := s.createTestFacility("Facility 1", []*models.Item{item1}, []*models.Item{item2})
+				facility2 := s.createTestFacility("Facility 2", []*models.Item{item2}, []*models.Item{item1})
+				return item1, item2, facility1, facility2
+			},
+			input: func(facility1, facility2 *models.Facility) *models.Pipeline {
+				pipeline := models.NewPipeline("Test Pipeline")
+				node1 := models.NewPipelineNode(facility1)
+				node1.AddNextNodeID(2)
+				pipeline.AddNode(node1)
+				node2 := models.NewPipelineNode(facility2)
+				pipeline.AddNode(node2)
+				return pipeline
+			},
+			expectError: false,
+		},
+		{
+			name: "enforces unique name constraint",
+			setup: func() (*models.Item, *models.Item, *models.Facility, *models.Facility) {
+				item1 := s.createTestItem("Item 1")
+				item2 := s.createTestItem("Item 2")
+				facility1 := s.createTestFacility("Facility 1", []*models.Item{item1}, []*models.Item{item2})
+				facility2 := s.createTestFacility("Facility 2", []*models.Item{item2}, []*models.Item{item1})
 
-	// Create pipeline with sequential nodes
-	pipeline := models.NewPipeline("Test Pipeline")
+				existingPipeline := models.NewPipeline("Test Pipeline")
+				node := models.NewPipelineNode(facility1)
+				existingPipeline.AddNode(node)
+				s.NoError(s.repo.Create(s.T().Context(), existingPipeline))
 
-	// Add first node
-	node1 := models.NewPipelineNode(facility1)
-	node1.AddNextNodeID(2) // Reference to second node's temporary ID
-	pipeline.AddNode(node1)
+				return item1, item2, facility1, facility2
+			},
+			input: func(facility1, facility2 *models.Facility) *models.Pipeline {
+				pipeline := models.NewPipeline("Test Pipeline")
+				node1 := models.NewPipelineNode(facility1)
+				node1.AddNextNodeID(2)
+				pipeline.AddNode(node1)
+				node2 := models.NewPipelineNode(facility2)
+				pipeline.AddNode(node2)
+				return pipeline
+			},
+			expectError: true,
+			errorMsg:    "UNIQUE constraint failed",
+		},
+	}
 
-	// Add second node
-	node2 := models.NewPipelineNode(facility2)
-	pipeline.AddNode(node2)
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.SetupTest()
 
-	err := s.repo.Create(s.T().Context(), pipeline)
-	s.NoError(err)
-	s.Greater(pipeline.ID(), 0)
+			_, _, facility1, facility2 := tc.setup()
+			pipeline := tc.input(facility1, facility2)
+			err := s.repo.Create(s.T().Context(), pipeline)
 
-	// Verify the persistence by getting the complete pipeline
-	result, err := s.repo.Get(s.T().Context(), pipeline.ID())
-	s.NoError(err)
-	s.NotNil(result)
+			if tc.expectError {
+				s.Error(err)
+				s.Contains(err.Error(), tc.errorMsg)
+			} else {
+				s.NoError(err)
+				s.Greater(pipeline.ID(), 0)
 
-	// Verify pipeline data
-	s.Equal(pipeline.ID(), result.ID())
-	s.Equal(pipeline.Name(), result.Name())
-	s.Equal(pipeline.Description(), result.Description())
-	s.Len(result.Nodes(), len(pipeline.Nodes()))
+				result, err := s.repo.Get(s.T().Context(), pipeline.ID())
+				s.NoError(err)
+				s.NotNil(result)
 
-	// Verify nodes and their connections
-	for _, node := range result.Nodes() {
-		// Find original node by matching facility ID
-		var originalNode *models.PipelineNode
-		for _, n := range pipeline.Nodes() {
-			if n.Facility().ID() == node.Facility().ID() {
-				originalNode = n
-				break
-			}
-		}
-		s.Equal(originalNode.Facility().ID(), node.Facility().ID())
+				s.Equal(pipeline.ID(), result.ID())
+				s.Equal(pipeline.Name(), result.Name())
+				s.Equal(pipeline.Description(), result.Description())
+				s.Len(result.Nodes(), len(pipeline.Nodes()))
 
-		// Verify connections by matching facility IDs
-		if len(originalNode.NextNodeIDs()) > 0 {
-			s.Len(node.NextNodeIDs(), len(originalNode.NextNodeIDs()))
-			for _, targetID := range originalNode.NextNodeIDs() {
-				targetFacilityID := pipeline.Nodes()[targetID].Facility().ID()
-				found := false
-				for _, resultTargetID := range node.NextNodeIDs() {
-					if result.Nodes()[resultTargetID].Facility().ID() == targetFacilityID {
-						found = true
-						break
+				for _, node := range result.Nodes() {
+					var originalNode *models.PipelineNode
+					for _, n := range pipeline.Nodes() {
+						if n.Facility().ID() == node.Facility().ID() {
+							originalNode = n
+							break
+						}
+					}
+					s.Equal(originalNode.Facility().ID(), node.Facility().ID())
+
+					if len(originalNode.NextNodeIDs()) > 0 {
+						s.Len(node.NextNodeIDs(), len(originalNode.NextNodeIDs()))
+						for _, targetID := range originalNode.NextNodeIDs() {
+							targetFacilityID := pipeline.Nodes()[targetID].Facility().ID()
+							found := false
+							for _, resultTargetID := range node.NextNodeIDs() {
+								if result.Nodes()[resultTargetID].Facility().ID() == targetFacilityID {
+									found = true
+									break
+								}
+							}
+							s.True(found, "Connection to facility %d not found", targetFacilityID)
+						}
+					} else {
+						s.Empty(node.NextNodeIDs())
 					}
 				}
-				s.True(found, "Connection to facility %d not found", targetFacilityID)
 			}
-		} else {
-			s.Empty(node.NextNodeIDs())
-		}
+		})
 	}
 }
 

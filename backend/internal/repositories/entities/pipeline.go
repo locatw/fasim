@@ -59,7 +59,7 @@ func (e *PipelineNodeEntity) ToModel() *models.PipelineNode {
 type PipelineEntity struct {
 	gorm.Model
 	ID          int `gorm:"primaryKey;autoIncrement"`
-	Name        string `gorm:"not null;index"`
+	Name        string `gorm:"not null;uniqueIndex"`
 	Description string
 	Nodes       []PipelineNodeEntity `gorm:"foreignKey:PipelineID"`
 }

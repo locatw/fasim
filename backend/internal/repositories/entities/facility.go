@@ -39,7 +39,7 @@ func (OutputDefinitionEntity) TableName() string {
 type FacilityEntity struct {
 	gorm.Model
 	ID               int `gorm:"primaryKey;autoIncrement"`
-	Name             string `gorm:"not null;index"`
+	Name             string `gorm:"not null;uniqueIndex"`
 	Description      string
 	ProcessingTime   int64
 	InputRequirements []InputRequirementEntity `gorm:"foreignKey:FacilityID"`

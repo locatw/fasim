@@ -72,41 +72,85 @@ func (s *FacilityRepositoryTestSuite) createTestFacility(name string, inputItems
 }
 
 func (s *FacilityRepositoryTestSuite) TestCreate() {
-	// Create test items
-	inputItem := s.createTestItem("Input Item")
-	outputItem := s.createTestItem("Output Item")
+	testCases := []struct {
+		name        string
+		setup       func() (*models.Item, *models.Item)
+		input       func(*models.Item, *models.Item) *models.Facility
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "creates a facility with relationships",
+			setup: func() (*models.Item, *models.Item) {
+				return s.createTestItem("Input Item"), s.createTestItem("Output Item")
+			},
+			input: func(inputItem, outputItem *models.Item) *models.Facility {
+				facility := models.NewFacility("Test Facility", 100)
+				facility.AddInputRequirement(models.NewInputRequirement(inputItem, 2))
+				facility.AddOutputDefinition(models.NewOutputDefinition(outputItem, 1))
+				return facility
+			},
+			expectError: false,
+		},
+		{
+			name: "enforces unique name constraint",
+			setup: func() (*models.Item, *models.Item) {
+				inputItem := s.createTestItem("Input Item")
+				outputItem := s.createTestItem("Output Item")
+				facility := models.NewFacility("Test Facility", 100)
+				facility.AddInputRequirement(models.NewInputRequirement(inputItem, 1))
+				facility.AddOutputDefinition(models.NewOutputDefinition(outputItem, 1))
+				s.NoError(s.repo.Create(s.T().Context(), facility))
+				return inputItem, outputItem
+			},
+			input: func(inputItem, outputItem *models.Item) *models.Facility {
+				facility := models.NewFacility("Test Facility", 200)
+				facility.AddInputRequirement(models.NewInputRequirement(inputItem, 2))
+				facility.AddOutputDefinition(models.NewOutputDefinition(outputItem, 2))
+				return facility
+			},
+			expectError: true,
+			errorMsg:    "UNIQUE constraint failed",
+		},
+	}
 
-	// Create facility with relationships
-	facility := models.NewFacility("Test Facility", 100)
-	facility.AddInputRequirement(models.NewInputRequirement(inputItem, 2))
-	facility.AddOutputDefinition(models.NewOutputDefinition(outputItem, 1))
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.SetupTest()
 
-	err := s.repo.Create(s.T().Context(), facility)
-	s.NoError(err)
-	s.Greater(facility.ID(), 0)
+			inputItem, outputItem := tc.setup()
+			facility := tc.input(inputItem, outputItem)
+			err := s.repo.Create(s.T().Context(), facility)
 
-	// Verify the persistence
-	var entity entities.FacilityEntity
-	err = s.db.
-		Preload("InputRequirements.Item").
-		Preload("OutputDefinitions.Item").
-		First(&entity, facility.ID()).Error
-	s.NoError(err)
+			if tc.expectError {
+				s.Error(err)
+				s.Contains(err.Error(), tc.errorMsg)
+			} else {
+				s.NoError(err)
+				s.Greater(facility.ID(), 0)
 
-	// Verify facility data
-	s.Equal(facility.ID(), int(entity.ID))
-	s.Equal(facility.Name(), entity.Name)
-	s.Equal(facility.Description(), entity.Description)
-	s.Equal(facility.ProcessingTime(), entity.ProcessingTime)
+				var entity entities.FacilityEntity
+				err = s.db.
+					Preload("InputRequirements.Item").
+					Preload("OutputDefinitions.Item").
+					First(&entity, facility.ID()).Error
+				s.NoError(err)
 
-	// Verify relationships
-	s.Len(entity.InputRequirements, 1)
-	s.Equal(inputItem.ID(), int(entity.InputRequirements[0].ItemID))
-	s.Equal(2, entity.InputRequirements[0].Quantity)
+				s.Equal(facility.ID(), int(entity.ID))
+				s.Equal(facility.Name(), entity.Name)
+				s.Equal(facility.Description(), entity.Description)
+				s.Equal(facility.ProcessingTime(), entity.ProcessingTime)
 
-	s.Len(entity.OutputDefinitions, 1)
-	s.Equal(outputItem.ID(), int(entity.OutputDefinitions[0].ItemID))
-	s.Equal(1, entity.OutputDefinitions[0].Quantity)
+				s.Len(entity.InputRequirements, 1)
+				s.Equal(inputItem.ID(), int(entity.InputRequirements[0].ItemID))
+				s.Equal(2, entity.InputRequirements[0].Quantity)
+
+				s.Len(entity.OutputDefinitions, 1)
+				s.Equal(outputItem.ID(), int(entity.OutputDefinitions[0].ItemID))
+				s.Equal(1, entity.OutputDefinitions[0].Quantity)
+			}
+		})
+	}
 }
 
 func (s *FacilityRepositoryTestSuite) TestGet() {

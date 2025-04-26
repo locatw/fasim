@@ -20,3 +20,4 @@ Please refer to README.md for the application overview.
   - All code changes must be verified by running unit tests
   - Run `go test ./...` in the backend directory to execute all tests
   - All tests must pass before considering a task complete
+  - When testing multiple scenarios, implement tests as parameterized tests

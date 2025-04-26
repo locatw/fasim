@@ -8,7 +8,7 @@ import (
 // ItemEntity represents a material or product that can be used in production processes
 type ItemEntity struct {
 	gorm.Model
-	Name        string `gorm:"not null;index"`
+	Name        string `gorm:"not null;uniqueIndex"`
 	Description string
 }
 

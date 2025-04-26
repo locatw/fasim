@@ -42,18 +42,56 @@ func (s *ItemRepositoryTestSuite) createTestItem(name, description string) *mode
 }
 
 func (s *ItemRepositoryTestSuite) TestCreate() {
-	item := models.NewItemFromParams(0, "Test Item", "Test Description")
+	testCases := []struct {
+		name        string
+		setup       func()
+		input       *models.Item
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "creates a new item",
+			input:       models.NewItemFromParams(0, "Test Item", "Test Description"),
+			expectError: false,
+		},
+		{
+			name: "enforces unique name constraint",
+			setup: func() {
+				existingItem := models.NewItemFromParams(0, "Test Item", "Original Description")
+				s.NoError(s.repo.Create(s.T().Context(), existingItem))
+			},
+			input:       models.NewItemFromParams(0, "Test Item", "Different Description"),
+			expectError: true,
+			errorMsg:    "UNIQUE constraint failed",
+		},
+	}
 
-	err := s.repo.Create(s.T().Context(), item)
-	s.NoError(err)
-	s.Greater(item.ID(), 0)
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.SetupTest()
 
-	var entity entities.ItemEntity
-	err = s.db.First(&entity, item.ID()).Error
-	s.NoError(err)
-	s.Equal(item.ID(), int(entity.ID))
-	s.Equal(item.Name(), entity.Name)
-	s.Equal(item.Description(), entity.Description)
+			if tc.setup != nil {
+				tc.setup()
+			}
+
+			err := s.repo.Create(s.T().Context(), tc.input)
+
+			if tc.expectError {
+				s.Error(err)
+				s.Contains(err.Error(), tc.errorMsg)
+			} else {
+				s.NoError(err)
+				s.Greater(tc.input.ID(), 0)
+
+				var entity entities.ItemEntity
+				err = s.db.First(&entity, tc.input.ID()).Error
+				s.NoError(err)
+				s.Equal(tc.input.ID(), int(entity.ID))
+				s.Equal(tc.input.Name(), entity.Name)
+				s.Equal(tc.input.Description(), entity.Description)
+			}
+		})
+	}
 }
 
 func (s *ItemRepositoryTestSuite) TestGet() {
