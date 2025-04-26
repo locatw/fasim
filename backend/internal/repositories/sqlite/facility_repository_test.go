@@ -51,7 +51,7 @@ func (s *FacilityRepositoryTestSuite) createTestItem(name string) *models.Item {
 
 // createTestFacility creates and persists a test facility with the given name and optional items
 func (s *FacilityRepositoryTestSuite) createTestFacility(name string, inputItems, outputItems []*models.Item) *models.Facility {
-	facility := models.NewFacility(name, 100)
+	facility := models.NewFacility(name, "Test Description for "+name, 100)
 
 	// Add input requirements
 	for i, item := range inputItems {
@@ -85,7 +85,7 @@ func (s *FacilityRepositoryTestSuite) TestCreate() {
 				return s.createTestItem("Input Item"), s.createTestItem("Output Item")
 			},
 			input: func(inputItem, outputItem *models.Item) *models.Facility {
-				facility := models.NewFacility("Test Facility", 100)
+				facility := models.NewFacility("Test Facility", "Test Description", 100)
 				facility.AddInputRequirement(models.NewInputRequirement(inputItem, 2))
 				facility.AddOutputDefinition(models.NewOutputDefinition(outputItem, 1))
 				return facility
@@ -97,14 +97,14 @@ func (s *FacilityRepositoryTestSuite) TestCreate() {
 			setup: func() (*models.Item, *models.Item) {
 				inputItem := s.createTestItem("Input Item")
 				outputItem := s.createTestItem("Output Item")
-				facility := models.NewFacility("Test Facility", 100)
+				facility := models.NewFacility("Test Facility", "Test Description", 100)
 				facility.AddInputRequirement(models.NewInputRequirement(inputItem, 1))
 				facility.AddOutputDefinition(models.NewOutputDefinition(outputItem, 1))
 				s.NoError(s.repo.Create(s.T().Context(), facility))
 				return inputItem, outputItem
 			},
 			input: func(inputItem, outputItem *models.Item) *models.Facility {
-				facility := models.NewFacility("Test Facility", 200)
+				facility := models.NewFacility("Test Facility", "Test Description", 200)
 				facility.AddInputRequirement(models.NewInputRequirement(inputItem, 2))
 				facility.AddOutputDefinition(models.NewOutputDefinition(outputItem, 2))
 				return facility

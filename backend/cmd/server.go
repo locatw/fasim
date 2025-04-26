@@ -61,9 +61,11 @@ func startServer() {
 
 	// Initialize repositories
 	itemRepo := sqlite.NewItemRepository(database)
+	facilityRepo := sqlite.NewFacilityRepository(database)
 
 	// Initialize handlers
 	itemHandler := handlers.NewItemHandler(itemRepo)
+	facilityHandler := handlers.NewFacilityHandler(facilityRepo, itemRepo)
 
 	// Route configuration
 	e.GET("/", func(c echo.Context) error {
@@ -76,6 +78,7 @@ func startServer() {
 
 	// Register routes
 	routes.RegisterItemRoutes(e, itemHandler)
+	routes.RegisterFacilityRoutes(e, facilityHandler)
 
 	// Start server
 	server := &http.Server{

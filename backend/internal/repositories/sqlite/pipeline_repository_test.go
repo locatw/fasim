@@ -59,7 +59,7 @@ func (s *PipelineRepositoryTestSuite) createTestItem(name string) *models.Item {
 
 // createTestFacility creates and persists a test facility
 func (s *PipelineRepositoryTestSuite) createTestFacility(name string, inputItems, outputItems []*models.Item) *models.Facility {
-	facility := models.NewFacility(name, 100)
+	facility := models.NewFacility(name, "Test Description for "+name, 100)
 
 	// Add input requirements
 	for i, item := range inputItems {

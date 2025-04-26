@@ -54,9 +54,10 @@ type Facility struct {
 }
 
 // NewFacility creates a new facility with empty input/output requirements
-func NewFacility(name string, processingTime int64) *Facility {
+func NewFacility(name string, description string, processingTime int64) *Facility {
 	return &Facility{
 		name:              name,
+		description:       description,
 		processingTime:    processingTime,
 		inputRequirements: make([]*InputRequirement, 0),
 		outputDefinitions: make([]*OutputDefinition, 0),
