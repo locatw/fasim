@@ -1,11 +1,12 @@
-# Factory Automation Simulator (Fasim) 指示書
+# Factory Automation Simulator (Fasim) Instructions
 
-## アプリケーションの概要
+## Application Overview
 
-アプリケーションの概要については README.md を参照してください。
+Please refer to README.md for the application overview.
 
-## コーディング
+## Coding
 
-- ソースコードのコメント
-  - コードから読み取れない情報をコメントに記載してください
-  - 自明なコメントは書かないでください
+- Source code comments
+  - Comments should contain information that cannot be inferred from the code
+  - Avoid self-evident comments
+  - All comments must be written in English

@@ -1,12 +1,12 @@
 # Factory Automation Simulator (Fasim)
 
-生産自動化を行うゲームの生産プロセスをシミュレートしてグラフィカルに表示するアプリケーションです。製造ラインの設計、最適化、トラブルシューティングを支援します。
+An application that simulates and graphically displays production processes from factory automation games. Supports manufacturing line design, optimization, and troubleshooting.
 
-## 概要
+## Overview
 
-このリポジトリは、Clineフレームワークを使用した生産自動化シミュレーション用のアプリケーションを提供します。日本語インターフェースで操作でき、ゲーム内の生産プロセスの効率化を支援します。プロセス中の設備のパラメーターから効率的なプロセスを導き出す機能を持っています。
+This repository provides a production automation simulation application using the Cline framework. It features a Japanese interface and helps optimize in-game production processes. It includes functionality to derive efficient processes from equipment parameters during processing.
 
-## 機能
+## Features
 
-- **プロセスシミュレーション**: 生産プロセスの動作をリアルタイムでグラフィカルに表示
-- **可視化**: 生産ラインを視覚的に表示
+- **Process Simulation**: Real-time graphical display of production process operations
+- **Visualization**: Visual representation of production lines
