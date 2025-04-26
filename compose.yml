@@ -1,0 +1,13 @@
+name: fasim
+
+services:
+  frontend:
+    build:
+      context: ./docker/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - NODE_ENV=development
