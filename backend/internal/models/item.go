@@ -8,9 +8,10 @@ type Item struct {
 }
 
 // NewItem は新しいItemを生成します
-func NewItem(name string) *Item {
+func NewItem(name, description string) *Item {
 	return &Item{
-		name: name,
+		name:        name,
+		description: description,
 	}
 }
 

@@ -9,6 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fasim/backend/internal/api/handlers"
+	"github.com/fasim/backend/internal/api/routes"
+	"github.com/fasim/backend/internal/repositories/db"
+	"github.com/fasim/backend/internal/repositories/sqlite"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
@@ -49,14 +53,29 @@ func startServer() {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))
 
+	// Initialize database
+	database, err := db.New("fasim.db")
+	if err != nil {
+		e.Logger.Fatal("Failed to connect to database: ", err)
+	}
+
+	// Initialize repositories
+	itemRepo := sqlite.NewItemRepository(database)
+
+	// Initialize handlers
+	itemHandler := handlers.NewItemHandler(itemRepo)
+
 	// Route configuration
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"message": "Welcome to Factory Automation Simulator API",
 			"version": "1.0.0",
-			"status": "running",
+			"status":  "running",
 		})
 	})
+
+	// Register routes
+	routes.RegisterItemRoutes(e, itemHandler)
 
 	// Start server
 	server := &http.Server{
