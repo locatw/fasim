@@ -1,0 +1,142 @@
+{
+  "tools": [
+    {
+      "name": "file_operations",
+      "description": "ファイル操作を行うツール",
+      "functions": [
+        {
+          "name": "read_file",
+          "description": "ファイルの内容を読み取ります",
+          "parameters": {
+            "path": {
+              "type": "string",
+              "description": "読み取るファイルのパス"
+            }
+          },
+          "returns": {
+            "type": "string",
+            "description": "ファイルの内容"
+          }
+        },
+        {
+          "name": "write_file",
+          "description": "ファイルに内容を書き込みます",
+          "parameters": {
+            "path": {
+              "type": "string",
+              "description": "書き込むファイルのパス"
+            },
+            "content": {
+              "type": "string",
+              "description": "書き込む内容"
+            }
+          },
+          "returns": {
+            "type": "boolean",
+            "description": "書き込みが成功したかどうか"
+          }
+        },
+        {
+          "name": "list_files",
+          "description": "ディレクトリ内のファイル一覧を取得します",
+          "parameters": {
+            "directory": {
+              "type": "string",
+              "description": "ファイル一覧を取得するディレクトリのパス"
+            }
+          },
+          "returns": {
+            "type": "array",
+            "description": "ファイルパスの配列"
+          }
+        }
+      ]
+    },
+    {
+      "name": "code_generation",
+      "description": "コード生成を行うツール",
+      "functions": [
+        {
+          "name": "generate_code",
+          "description": "指定された要件に基づいてコードを生成します",
+          "parameters": {
+            "language": {
+              "type": "string",
+              "description": "プログラミング言語",
+              "enum": ["javascript", "typescript", "go"]
+            },
+            "requirements": {
+              "type": "string",
+              "description": "コードの要件や機能の説明"
+            }
+          },
+          "returns": {
+            "type": "string",
+            "description": "生成されたコード"
+          }
+        },
+        {
+          "name": "refactor_code",
+          "description": "既存のコードをリファクタリングします",
+          "parameters": {
+            "code": {
+              "type": "string",
+              "description": "リファクタリングするコード"
+            },
+            "instructions": {
+              "type": "string",
+              "description": "リファクタリングの指示"
+            }
+          },
+          "returns": {
+            "type": "string",
+            "description": "リファクタリングされたコード"
+          }
+        }
+      ]
+    },
+    {
+      "name": "database",
+      "description": "データベース操作を行うツール",
+      "functions": [
+        {
+          "name": "query",
+          "description": "データベースにクエリを実行します",
+          "parameters": {
+            "connection_string": {
+              "type": "string",
+              "description": "データベース接続文字列"
+            },
+            "query": {
+              "type": "string",
+              "description": "実行するSQLクエリ"
+            }
+          },
+          "returns": {
+            "type": "object",
+            "description": "クエリの結果"
+          }
+        },
+        {
+          "name": "generate_schema",
+          "description": "要件に基づいてデータベーススキーマを生成します",
+          "parameters": {
+            "requirements": {
+              "type": "string",
+              "description": "スキーマの要件や説明"
+            },
+            "database_type": {
+              "type": "string",
+              "description": "データベースの種類",
+              "enum": ["postgresql", "sqlite"]
+            }
+          },
+          "returns": {
+            "type": "string",
+            "description": "生成されたスキーマ定義"
+          }
+        }
+      ]
+    }
+  ]
+}

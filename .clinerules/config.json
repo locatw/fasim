@@ -1,0 +1,60 @@
+{
+  "agent": {
+    "name": "fasim",
+    "version": "1.0.0",
+    "description": "生産自動化を行うゲームの生産プロセスをシミュレートしてグラフィカルに表示するアプリケーション",
+    "language": "ja",
+    "capabilities": [
+      "manufacturing_simulation",
+      "process_optimization",
+      "graphical_visualization"
+    ]
+  },
+  "settings": {
+    "response": {
+      "format": "markdown",
+      "max_length": 4000,
+      "include_code_blocks": true,
+      "include_diagrams": true
+    },
+    "memory": {
+      "enabled": true,
+      "storage_type": "local",
+      "max_history": 50,
+      "context_window": 10
+    },
+    "tools": {
+      "enabled": true,
+      "require_confirmation": true,
+      "timeout": 30000
+    }
+  },
+  "security": {
+    "allowed_domains": [
+      "github.com",
+      "npmjs.com",
+      "stackoverflow.com",
+      "developer.mozilla.org"
+    ],
+    "allowed_file_extensions": [
+      ".js",
+      ".ts",
+      ".jsx",
+      ".tsx",
+      ".html",
+      ".css",
+      ".json",
+      ".go",
+      ".md",
+      ".yaml",
+      ".yml"
+    ],
+    "max_file_size": 10485760
+  },
+  "logging": {
+    "enabled": true,
+    "level": "info",
+    "file": "logs/agent.log",
+    "include_timestamps": true
+  }
+}
