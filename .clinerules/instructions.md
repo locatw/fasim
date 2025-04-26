@@ -4,6 +4,12 @@
 
 Please refer to README.md for the application overview.
 
+## Detailed Design
+
+- Backend API
+  - All backend APIs must follow RESTful principles
+  - All API requests and responses must use JSON format for data exchange
+
 ## Coding
 
 - Source code comments

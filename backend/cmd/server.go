@@ -51,18 +51,12 @@ func startServer() {
 
 	// Route configuration
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Factory Automation Simulator (Fasim) API")
-	})
-
-	// API route configuration
-	api := e.Group("/api")
-	{
-		api.GET("/health", func(c echo.Context) error {
-			return c.String(http.StatusOK, "OK")
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"message": "Welcome to Factory Automation Simulator API",
+			"version": "1.0.0",
+			"status": "running",
 		})
-
-		// TODO: Add other API endpoints
-	}
+	})
 
 	// Start server
 	server := &http.Server{
